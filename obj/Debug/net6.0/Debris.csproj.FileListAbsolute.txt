@@ -1,0 +1,12 @@
+C:\Users\David\OneDrive - Kormányzati Informatikai Fejlesztési Ügynökség\source\repos\Debris\bin\Debug\net6.0\Debris.deps.json
+C:\Users\David\OneDrive - Kormányzati Informatikai Fejlesztési Ügynökség\source\repos\Debris\bin\Debug\net6.0\Debris.dll
+C:\Users\David\OneDrive - Kormányzati Informatikai Fejlesztési Ügynökség\source\repos\Debris\bin\Debug\net6.0\Debris.pdb
+C:\Users\David\OneDrive - Kormányzati Informatikai Fejlesztési Ügynökség\source\repos\Debris\obj\Debug\net6.0\Debris.csproj.AssemblyReference.cache
+C:\Users\David\OneDrive - Kormányzati Informatikai Fejlesztési Ügynökség\source\repos\Debris\obj\Debug\net6.0\Debris.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\David\OneDrive - Kormányzati Informatikai Fejlesztési Ügynökség\source\repos\Debris\obj\Debug\net6.0\Debris.AssemblyInfoInputs.cache
+C:\Users\David\OneDrive - Kormányzati Informatikai Fejlesztési Ügynökség\source\repos\Debris\obj\Debug\net6.0\Debris.AssemblyInfo.cs
+C:\Users\David\OneDrive - Kormányzati Informatikai Fejlesztési Ügynökség\source\repos\Debris\obj\Debug\net6.0\Debris.csproj.CoreCompileInputs.cache
+C:\Users\David\OneDrive - Kormányzati Informatikai Fejlesztési Ügynökség\source\repos\Debris\obj\Debug\net6.0\Debris.dll
+C:\Users\David\OneDrive - Kormányzati Informatikai Fejlesztési Ügynökség\source\repos\Debris\obj\Debug\net6.0\ref\Debris.dll
+C:\Users\David\OneDrive - Kormányzati Informatikai Fejlesztési Ügynökség\source\repos\Debris\obj\Debug\net6.0\Debris.pdb
+C:\Users\David\OneDrive - Kormányzati Informatikai Fejlesztési Ügynökség\source\repos\Debris\obj\Debug\net6.0\refint\Debris.dll
