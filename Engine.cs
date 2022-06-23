@@ -4,7 +4,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -31,98 +30,19 @@ namespace Debris
             aes.Key = key;
             return aes.DecryptCfb(data, key);
         }
-        [DllImport("KERNEL32.DLL", EntryPoint = "RtlZeroMemory")]
-        private static extern bool ZeroMemory(IntPtr Destination, int Length);
-        public static void FileEncrypt(string inputFile, string password)
-        {
-            byte[] salt = new byte[32];
-            FileStream fsCrypt = new(inputFile + ".cosy", FileMode.Create);
-            byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
-            RijndaelManaged AES = new();
-            AES.KeySize = 256;
-            AES.BlockSize = 128;
-            AES.Padding = PaddingMode.PKCS7;
-            var key = new Rfc2898DeriveBytes(passwordBytes, salt, 50000);
-            AES.Key = key.GetBytes(AES.KeySize / 8);
-            AES.IV = key.GetBytes(AES.BlockSize / 8);
-            AES.Mode = CipherMode.CFB;
-            fsCrypt.Write(salt, 0, salt.Length);
-            CryptoStream cs = new(fsCrypt, AES.CreateEncryptor(), CryptoStreamMode.Write);
-            FileStream fsIn = new(inputFile, FileMode.Open);
-            byte[] buffer = new byte[1048576];
-            int read;
-            try
-            {
-                while ((read = fsIn.Read(buffer, 0, buffer.Length)) > 0)
-                {
-                    cs.Write(buffer, 0, read);
-                }
-                fsIn.Close();
-            }
-            catch (Exception ex)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Error: {0}", ex.Message);
-            }
-            finally
-            {
-                cs.Close();
-                fsCrypt.Close();
-            }
-        }
-        public static void FileDecrypt(string inputFile, string outputFile, string password)
-        {
-            byte[] salt = new byte[32];
-            byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
-            FileStream fsCrypt = new(inputFile, FileMode.Open);
-            fsCrypt.Read(salt, 0, salt.Length);
-            RijndaelManaged AES = new();
-            AES.KeySize = 256;
-            AES.BlockSize = 128;
-            var key = new Rfc2898DeriveBytes(passwordBytes, salt, 50000);
-            AES.Key = key.GetBytes(AES.KeySize / 8);
-            AES.IV = key.GetBytes(AES.BlockSize / 8);
-            AES.Padding = PaddingMode.PKCS7;
-            AES.Mode = CipherMode.CFB;
-            CryptoStream cs = new(fsCrypt, AES.CreateDecryptor(), CryptoStreamMode.Read);
-            FileStream fsOut = new(outputFile, FileMode.Create);
-            int read;
-            byte[] buffer = new byte[1048576];
-            try
-            {
-                while ((read = cs.Read(buffer, 0, buffer.Length)) > 0)
-                {
-                    fsOut.Write(buffer, 0, read);
-                }
-            }
-            catch (CryptographicException ex_CryptographicException)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("CryptographicException error: {0}", ex_CryptographicException.Message);
-            }
-            catch (Exception ex)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Error: {0}", ex.Message);
-            }
-            try
-            {
-                cs.Close();
-            }
-            catch (Exception ex)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Error by closing CryptoStream: {0}", ex.Message);
-            }
-            finally
-            {
-                fsOut.Close();
-                fsCrypt.Close();
-            }
-        }
     }
     public class Engine
     {
+        public static string See(byte[] bytes)
+        {
+            string resp = string.Empty;
+            foreach (byte b in bytes)
+            {
+                resp += b + " ";
+            }
+            return resp[..^1];
+        }
+        public static Handle handle = new();
         public virtual byte[] Reply()
         {
             return new byte[1];
@@ -149,6 +69,11 @@ namespace Debris
         }
         public static Packet Deserialize(byte[] value, Socket socket)
         {
+            if (Encryption.keys.ContainsKey(socket))
+            {
+                Encryption.aes.Key = Encryption.keys[socket];
+                value = Encryption.aes.DecryptCfb(value, Encryption.aes.Key);
+            }
             int step = 0;
             List<byte> tmp = new();
             Packet packet = new Packet();
@@ -175,11 +100,6 @@ namespace Debris
                 }
             }
             packet.data = tmp.ToArray();
-            if (Encryption.keys.ContainsKey(socket))
-            {
-                Encryption.aes.Key = Encryption.keys[socket];
-                packet.data = Encryption.aes.DecryptCfb(tmp.ToArray(), Encryption.aes.Key);
-            }
             return packet;
         }
         public static byte[] Serialize(Packet value, Socket socket)
@@ -189,7 +109,7 @@ namespace Debris
             if (Encryption.keys.ContainsKey(socket))
             {
                 Encryption.aes.Key = Encryption.keys[socket];
-                return Combine(lenght, id, Encryption.aes.EncryptCfb(value.data, Encryption.aes.Key));
+                return Encryption.aes.EncryptCfb(Combine(lenght, id, value.data), Encryption.aes.Key);
             }
             return Combine(lenght, id, value.data);
         }
@@ -323,6 +243,10 @@ namespace Debris
                 }
                 return mso.ToArray();
             }
+        }
+        public static byte[] PrefixedString(string text)
+        {
+            return Combine(VarintBitConverter.GetVarintBytes(text.Length), Encoding.UTF8.GetBytes(text));
         }
     }
     public class Debug
