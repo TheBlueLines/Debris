@@ -7,7 +7,12 @@ namespace Debris
 {
     public class Client
     {
-        private static TcpClient client = null;
+        public static TcpClient client = null;
+        public static NetworkStream stream = null;
+        public static bool EnableEncryption(byte[] key)
+        {
+            return Encryption.keys.TryAdd(client.GetStream().Socket, key);
+        }
         public static void Connect(string ip = "127.0.0.1", int port = 12345)
         {
             client = new TcpClient(ip, port);
@@ -25,7 +30,7 @@ namespace Debris
             {
                 Connect();
             }
-            NetworkStream stream = client.GetStream();
+            stream = client.GetStream();
             byte[] req = Engine.Serialize(packet, stream.Socket);
             stream.Write(req);
         }
@@ -51,7 +56,7 @@ namespace Debris
                     ttmc.AddRange(list.ToArray()[..(int)nzx]);
                     list.RemoveRange(0, (int)nzx);
                     Packet resp = Engine.Deserialize(ttmc.ToArray(), stream.Socket);
-                    Engine.handle.Response(resp);
+                    Engine.handle.Response(resp, stream);
                 }
                 else
                 {

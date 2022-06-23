@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -10,11 +9,13 @@ namespace Debris
 {
     public class Handle
     {
-        public virtual Packet Request(Packet packet)
+        public Socket clientSocket = null;
+        public Socket serverSocket = null;
+        public virtual Packet Request(Packet packet, NetworkStream stream)
         {
             return packet;
         }
-        public virtual void Response(Packet packet)
+        public virtual void Response(Packet packet, NetworkStream stream)
         {
 
         }
@@ -56,10 +57,11 @@ namespace Debris
             }
         }
         private static List<byte> list = new List<byte>();
-        private static void HandleDeivce(Object obj)
+        private static void HandleDeivce(object obj)
         {
             TcpClient client = (TcpClient)obj;
             var stream = client.GetStream();
+            Engine.handle.serverSocket = stream.Socket;
             byte[] bytes = new byte[ushort.MaxValue];
             int i;
             try
@@ -90,7 +92,7 @@ namespace Debris
                     ttmc.AddRange(list.ToArray()[..(int)nzx]);
                     list.RemoveRange(0, (int)nzx);
                     Packet req = Engine.Deserialize(ttmc.ToArray(), stream.Socket);
-                    Packet resp = Engine.handle.Request(req);
+                    Packet resp = Engine.handle.Request(req, stream);
                     Engine.SendPacket(stream, resp);
                 }
                 else

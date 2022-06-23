@@ -55,11 +55,10 @@ namespace Debris
         public static string CreateRandomPassword(int length = 100)
         {
             string validChars = "ABCDEFGHJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-            Random random = new();
             char[] chars = new char[length];
             for (int i = 0; i < length; i++)
             {
-                chars[i] = validChars[random.Next(0, validChars.Length)];
+                chars[i] = validChars[new Random().Next(0, validChars.Length)];
             }
             return new string(chars);
         }
@@ -74,33 +73,17 @@ namespace Debris
                 Encryption.aes.Key = Encryption.keys[socket];
                 value = Encryption.aes.DecryptCfb(value, Encryption.aes.Key);
             }
-            int step = 0;
-            List<byte> tmp = new();
-            Packet packet = new Packet();
-            foreach (byte b in value)
+            int length = VarintBitConverter.ToInt32(value);
+            byte[] lengthx = VarintBitConverter.GetVarintBytes(length);
+            int id = VarintBitConverter.ToInt32(value[lengthx.Length..]);
+            byte[] idx = VarintBitConverter.GetVarintBytes(id);
+            byte[] data = value[(lengthx.Length + idx.Length)..];
+            return new Packet()
             {
-                tmp.Add(b);
-                if (step == 0)
-                {
-                    if (b <= 127)
-                    {
-                        packet.length = VarintBitConverter.ToInt32(tmp.ToArray());
-                        tmp.Clear();
-                        step++;
-                    }
-                }
-                else if (step == 1)
-                {
-                    if (b <= 127)
-                    {
-                        packet.id = VarintBitConverter.ToInt32(tmp.ToArray());
-                        tmp.Clear();
-                        step++;
-                    }
-                }
-            }
-            packet.data = tmp.ToArray();
-            return packet;
+                length = length,
+                id = id,
+                data = data,
+            };
         }
         public static byte[] Serialize(Packet value, Socket socket)
         {
@@ -125,15 +108,9 @@ namespace Debris
         public static ushort[] DeserializeUshortArray(byte[] array)
         {
             List<ushort> list = new();
-            List<byte> tmp = new();
-            foreach (byte b in array)
+            for (int i = 0; i < array.Length / 2; i++)
             {
-                tmp.Add(b);
-                if (tmp.Count >= 2)
-                {
-                    list.Add(BitConverter.ToUInt16(tmp.ToArray()));
-                    tmp.Clear();
-                }
+                list.Add(BitConverter.ToUInt16(array, i * 2));
             }
             return list.ToArray();
         }
@@ -142,63 +119,27 @@ namespace Debris
             List<byte> list = new();
             foreach (string str in array)
             {
-                list.AddRange(VarintBitConverter.GetVarintBytes(str.Length));
-                list.AddRange(Encoding.UTF8.GetBytes(str));
+                list.AddRange(PrefixedString(str));
             }
             return Combine(list.ToArray());
         }
         public static string[] DeserializeStringArray(byte[] array)
         {
-            List<string> list = new();
-            List<byte> temp = new();
-            int length = 0;
-            foreach (byte b in array)
+            List<byte> data = array.ToList();
+            List<string> words = new();
+            while (data.Count > 0)
             {
-                temp.Add(b);
-                if (length == 0)
-                {
-                    if (b <= 127)
-                    {
-                        length = VarintBitConverter.ToInt32(temp.ToArray());
-                        temp.Clear();
-                    }
-                }
-                else
-                {
-                    if (--length == 0)
-                    {
-                        list.Add(Encoding.UTF8.GetString(temp.ToArray()));
-                        temp.Clear();
-                    }
-                }
+                string nzx = GetString(data.ToArray());
+                words.Add(nzx);
+                data.RemoveRange(0, PrefixedString(nzx).Length);
             }
-            return list.ToArray();
+            return words.ToArray();
         }
         public static string GetString(byte[] data)
         {
-            List<byte> lengthx = new();
-            List<byte> datax = new();
-            int length = 0;
-            foreach (byte b in data)
-            {
-                if (length != 0)
-                {
-                    datax.Add(b);
-                    if (--length == 0)
-                    {
-                        break;
-                    }
-                }
-                else
-                {
-                    lengthx.Add(b);
-                    if (b <= 127)
-                    {
-                        length = VarintBitConverter.ToInt32(lengthx.ToArray());
-                    }
-                }
-            }
-            return Encoding.UTF8.GetString(datax.ToArray());
+            int length = VarintBitConverter.ToInt32(data);
+            byte[] lengthx = VarintBitConverter.GetVarintBytes(length);
+            return Encoding.UTF8.GetString(data, lengthx.Length, length);
         }
         public static byte[] Combine(params byte[][] arrays)
         {
@@ -246,7 +187,8 @@ namespace Debris
         }
         public static byte[] PrefixedString(string text)
         {
-            return Combine(VarintBitConverter.GetVarintBytes(text.Length), Encoding.UTF8.GetBytes(text));
+            byte[] data = Encoding.UTF8.GetBytes(text);
+            return Combine(VarintBitConverter.GetVarintBytes(data.Length), data);
         }
     }
     public class Debug
