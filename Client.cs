@@ -7,56 +7,57 @@ namespace Debris
 {
     public class Client
     {
-        public static TcpClient client = null;
-        public static NetworkStream stream = null;
-        public static bool EnableEncryption(byte[] key)
+        public Handle handle = new();
+        public NetworkStream stream = null;
+        private TcpClient client = null;
+        private List<byte> list = new();
+        public Client(string ip = "127.0.0.1", int port = 12345)
+        {
+            client = new TcpClient(ip, port);
+            Task task = new(GetPacket);
+            task.Start();
+        }
+        public bool EnableEncryption(byte[] key)
         {
             return Encryption.keys.TryAdd(client.GetStream().Socket, key);
         }
-        public static void Connect(string ip = "127.0.0.1", int port = 12345)
-        {
-            client = new TcpClient(ip, port);
-            Task task = new Task(() => GetPacket());
-            task.Start();
-        }
-        public static void Disconnect()
+        public void Disconnect()
         {
             client.Close();
             client.Dispose();
         }
-        public static void SendPacket(Packet packet)
+        public void SendPacket(Packet packet)
         {
-            if (client == null)
+            if (client != null)
             {
-                Connect();
+                stream = client.GetStream();
+                byte[] req = Engine.Serialize(packet, stream.Socket);
+                stream.Write(req);
             }
-            stream = client.GetStream();
-            byte[] req = Engine.Serialize(packet, stream.Socket);
-            stream.Write(req);
         }
-        public static void SendRequest()
+        public void SendRequest()
         {
-            if (client == null)
+            if (client != null)
             {
-                Connect();
+                NetworkStream stream = client.GetStream();
+                byte[] req = { 1, 0 };
+                stream.Write(req);
             }
-            NetworkStream stream = client.GetStream();
-            byte[] req = { 1, 0 };
-            stream.Write(req);
         }
-        private static List<byte> list = new List<byte>();
-        private static void DoWork(NetworkStream stream)
+        private void DoWork(NetworkStream stream)
         {
             while (list.Count > 0)
             {
                 int? nzx = Helper.CheckLength(list.ToArray(), stream.Socket);
-                if (nzx != null && nzx > 0)
+                if (nzx != null && nzx.Value > 0)
                 {
-                    List<byte> ttmc = new();
-                    ttmc.AddRange(list.ToArray()[..(int)nzx]);
-                    list.RemoveRange(0, (int)nzx);
-					Packet resp = Engine.Deserialize(ttmc.ToArray(), stream.Socket);
-                    Engine.handle.Response(resp, stream);
+					Packet resp = Engine.Deserialize(list.GetRange(0, nzx.Value).ToArray(), stream.Socket);
+                    list.RemoveRange(0, nzx.Value);
+                    Packet req = handle.Message(resp, stream);
+                    if (req != null)
+                    {
+                        SendPacket(req);
+                    }
                 }
                 else
                 {
@@ -64,7 +65,7 @@ namespace Debris
                 }
             }
         }
-        public static void GetPacket()
+        private void GetPacket()
         {
             NetworkStream stream = client.GetStream();
             byte[] bytes = new byte[ushort.MaxValue];
@@ -81,8 +82,8 @@ namespace Debris
                 }
                 catch (Exception e)
                 {
-                    Debug.Error("\nException: " + e);
-                    client.Close();
+                    Debug.Error("Exception: " + e);
+                    Disconnect();
                 }
             }
         }

@@ -3,68 +3,60 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Debris
 {
-    public class Handle
-    {
-        public Socket clientSocket = null;
-        public Socket serverSocket = null;
-        public virtual Packet Request(Packet packet, NetworkStream stream)
-        {
-            return packet;
-        }
-        public virtual void Response(Packet packet, NetworkStream stream)
-        {
-
-        }
-    }
     public class Server
     {
-        private static TcpListener server = null;
-        public static Task StartServer(int port = 12345, bool alert = true)
+        public Handle handle = new();
+        private Listener listener = null;
+        public Server(int port = 12345)
         {
             Thread t = new Thread(delegate ()
             {
-                Server myserver = new Server(IPAddress.Any, port);
+                listener = new Listener(IPAddress.Any, port, handle);
             });
             t.Start();
-            if (alert)
-            {
-                Debug.Info("Debris Server Started!");
-            }
-            return Task.CompletedTask;
         }
-        private Server(IPAddress ip, int port)
+        public void StopServer()
         {
-            server = new TcpListener(ip, port);
-            server.Start();
+            listener.listener.Stop();
+        }
+    }
+    public class Listener
+    {
+        private Handle handle = new();
+        private List<byte> list = new();
+        internal TcpListener listener = null;
+        internal Listener(IPAddress ip, int port, Handle hndl)
+        {
+            handle = hndl;
+            listener = new TcpListener(ip, port);
+            listener.Start();
             StartListener();
         }
-        private static void StartListener()
+        private void StartListener()
         {
             try
             {
                 while (true)
                 {
-                    TcpClient client = server.AcceptTcpClient();
+                    TcpClient client = listener.AcceptTcpClient();
                     Thread t = new Thread(new ParameterizedThreadStart(HandleDeivce));
                     t.Start(client);
                 }
             }
             catch (SocketException e)
             {
-                Console.WriteLine("SocketException: {0}", e);
-                server.Stop();
+                Debug.Error("SocketException: " + e);
+                listener.Stop();
             }
         }
-        private static List<byte> list = new List<byte>();
-        private static void HandleDeivce(object obj)
+        private void HandleDeivce(object obj)
         {
             TcpClient client = (TcpClient)obj;
             var stream = client.GetStream();
-            Engine.handle.serverSocket = stream.Socket;
+            handle.socket = stream.Socket;
             byte[] bytes = new byte[ushort.MaxValue];
             int i;
             try
@@ -80,7 +72,7 @@ namespace Debris
             }
             catch { }
         }
-        private static void DoWork(NetworkStream stream)
+        private void DoWork(NetworkStream stream)
         {
             try
             {
@@ -93,7 +85,7 @@ namespace Debris
                         ttmc.AddRange(list.ToArray()[..(int)nzx]);
                         list.RemoveRange(0, (int)nzx);
                         Packet req = Engine.Deserialize(ttmc.ToArray(), stream.Socket);
-                        Packet resp = Engine.handle.Request(req, stream);
+                        Packet resp = handle.Message(req, stream);
                         if (resp != null)
                         {
                             Engine.SendPacket(stream, resp);

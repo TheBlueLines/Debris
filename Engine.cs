@@ -15,11 +15,16 @@ namespace Debris
         public int id { get; set; }
         public byte[] data { get; set; }
     }
+    public class Handle
+    {
+        public Socket socket = null;
+        public virtual Packet Message(Packet packet, NetworkStream stream) { return null; }
+    }
     public class Encryption
     {
-        public static Dictionary<Socket, byte[]> keys = new();
-        public static Aes aes = Aes.Create();
-        public static RSA rsa = RSA.Create();
+        internal static Dictionary<Socket, byte[]> keys = new();
+        internal static Aes aes = Aes.Create();
+        internal static RSA rsa = RSA.Create();
         public static byte[] Encrypt(byte[] data, byte[] key)
         {
             aes.Key = key;
@@ -41,11 +46,6 @@ namespace Debris
                 resp += b + " ";
             }
             return resp[..^1];
-        }
-        public static Handle handle = new();
-        public virtual byte[] Reply()
-        {
-            return new byte[1];
         }
         public static void InsertDate()
         {
@@ -240,6 +240,10 @@ namespace Debris
         public static void Info(string text)
         {
             Print(text, ConsoleColor.Blue);
+        }
+        public static void Comment(string text)
+        {
+            Print(text, ConsoleColor.DarkGray);
         }
     }
 }
