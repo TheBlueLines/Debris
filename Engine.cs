@@ -22,7 +22,7 @@ namespace Debris
     }
     public class Encryption
     {
-        internal static Dictionary<Socket, byte[]> keys = new();
+        public static Dictionary<Socket, byte[]> keys = new();
         internal static Aes aes = Aes.Create();
         internal static RSA rsa = RSA.Create();
         public static byte[] Encrypt(byte[] data, byte[] key)
@@ -101,7 +101,7 @@ namespace Debris
             List<byte[]> list = new();
             foreach (byte[] value in array)
             {
-                list.Add(Engine.Combine(VarintBitConverter.GetVarintBytes(value.Length), value));
+                list.Add(Combine(VarintBitConverter.GetVarintBytes(value.Length), value));
             }
             return Combine(list.ToArray());
         }

@@ -49,9 +49,9 @@ namespace Debris
             while (list.Count > 0)
             {
                 int? nzx = Helper.CheckLength(list.ToArray(), stream.Socket);
-                if (nzx != null && nzx.Value > 0)
+                if (nzx != null && nzx.Value > 0 && list.Count >= nzx)
                 {
-					Packet resp = Engine.Deserialize(list.GetRange(0, nzx.Value).ToArray(), stream.Socket);
+                    Packet resp = Engine.Deserialize(list.GetRange(0, nzx.Value).ToArray(), stream.Socket);
                     list.RemoveRange(0, nzx.Value);
                     Packet req = handle.Message(resp, stream);
                     if (req != null)
