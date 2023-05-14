@@ -23,8 +23,8 @@ namespace Debris
 	public class Encryption
 	{
 		public static Dictionary<Socket, byte[]> keys = new();
-		internal static Aes aes = Aes.Create();
-		internal static RSA rsa = RSA.Create();
+		public static Aes aes = Aes.Create();
+		public static RSA rsa = RSA.Create();
 		public static byte[] Encrypt(byte[] data, byte[] key)
 		{
 			aes.Key = key;
