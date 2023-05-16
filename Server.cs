@@ -2,34 +2,36 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Debris
 {
 	public class Server
 	{
 		public Handle handle = new();
-		private Listener listener = null;
+		private Task task;
+		internal bool run = true;
 		public Server(int port = 12345)
 		{
-			Thread t = new Thread(delegate ()
+			task = new(delegate ()
 			{
-				listener = new Listener(IPAddress.Any, port, handle);
+				Listener listener = new Listener(IPAddress.Any, port, this);
 			});
-			t.Start();
+			task.Start();
 		}
 		public void StopServer()
 		{
-			listener.listener.Stop();
+			run = false;
 		}
 	}
 	public class Listener
 	{
-		private Handle handle = new();
+		private Server server;
 		private List<byte> list = new();
 		internal TcpListener listener = null;
-		internal Listener(IPAddress ip, int port, Handle hndl)
+		internal Listener(IPAddress ip, int port, Server server)
 		{
-			handle = hndl;
+			this.server = server;
 			listener = new TcpListener(ip, port);
 			listener.Start();
 			StartListener();
@@ -38,7 +40,7 @@ namespace Debris
 		{
 			try
 			{
-				while (true)
+				while (server.run)
 				{
 					TcpClient client = listener.AcceptTcpClient();
 					Thread t = new Thread(new ParameterizedThreadStart(HandleDeivce));
@@ -48,23 +50,30 @@ namespace Debris
 			catch (SocketException e)
 			{
 				Debug.Error("SocketException: " + e);
-				listener.Stop();
 			}
+			listener.Stop();
 		}
 		private void HandleDeivce(object obj)
 		{
 			TcpClient client = obj as TcpClient;
 			var stream = client.GetStream();
-			handle.socket = stream.Socket;
+			server.handle.socket = stream.Socket;
 			byte[] bytes = new byte[ushort.MaxValue];
-			int i;
 			try
 			{
-				while ((i = stream.Read(bytes, 0, bytes.Length)) != 0)
+				while (server.run)
 				{
-					list.AddRange(bytes[..i]);
-					DoWork(stream);
+					if (stream.DataAvailable)
+					{
+						int i = stream.Read(bytes, 0, bytes.Length);
+						if (i != 0)
+						{
+							list.AddRange(bytes[..i]);
+							DoWork(stream);
+						}
+					}
 				}
+				listener.Stop();
 			}
 			catch { }
 		}
@@ -75,13 +84,13 @@ namespace Debris
 				while (list.Count > 0)
 				{
 					int? nzx = Helper.CheckLength(list.ToArray(), stream.Socket);
-                    if (nzx != null && nzx > 0 && list.Count >= nzx)
+					if (nzx != null && nzx > 0 && list.Count >= nzx)
 					{
 						List<byte> ttmc = new();
 						ttmc.AddRange(list.ToArray()[..(int)nzx]);
 						list.RemoveRange(0, (int)nzx);
 						Packet req = Engine.Deserialize(ttmc.ToArray(), stream.Socket);
-						Packet resp = handle.Message(req, stream);
+						Packet resp = server.handle.Message(req, stream);
 						if (resp != null)
 						{
 							Engine.SendPacket(stream, resp);
