@@ -2,22 +2,20 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Debris
 {
 	public class Server
 	{
 		public Handle handle = new();
-		private Task task;
 		internal bool run = true;
 		public Server(int port = 12345)
 		{
-			task = new(delegate ()
+			Thread t = new Thread(delegate ()
 			{
 				Listener listener = new Listener(IPAddress.Any, port, this);
 			});
-			task.Start();
+			t.Start();
 		}
 		public void StopServer()
 		{
