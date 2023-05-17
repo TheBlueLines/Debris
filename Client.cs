@@ -8,8 +8,7 @@ namespace Debris
 	public class Client
 	{
 		public Handle handle = new();
-		public NetworkStream stream = null;
-		private TcpClient client = null;
+		private TcpClient client;
 		private List<byte> list = new();
 		public Client(string ip = "127.0.0.1", int port = 12345)
 		{
@@ -28,21 +27,9 @@ namespace Debris
 		}
 		public void SendPacket(Packet packet)
 		{
-			if (client != null)
-			{
-				stream = client.GetStream();
-				byte[] req = Engine.Serialize(packet, stream.Socket);
-				stream.Write(req);
-			}
-		}
-		public void SendRequest()
-		{
-			if (client != null)
-			{
-				NetworkStream stream = client.GetStream();
-				byte[] req = { 1, 0 };
-				stream.Write(req);
-			}
+			NetworkStream stream = client.GetStream();
+			byte[] req = Engine.Serialize(packet, stream.Socket);
+			stream.Write(req);
 		}
 		private void DoWork(NetworkStream stream)
 		{
@@ -74,10 +61,14 @@ namespace Debris
 			{
 				try
 				{
-					while ((i = stream.Read(bytes, 0, bytes.Length)) != 0)
+					if (stream.DataAvailable)
 					{
-						list.AddRange(bytes[..i]);
-						DoWork(stream);
+						i = stream.Read(bytes, 0, bytes.Length);
+						if (i > 0)
+						{
+							list.AddRange(bytes[..i]);
+							DoWork(stream);
+						}
 					}
 				}
 				catch (Exception e)

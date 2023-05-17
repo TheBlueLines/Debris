@@ -17,7 +17,6 @@ namespace Debris
 	}
 	public class Handle
 	{
-		public Socket socket = null;
 		public virtual Packet Message(Packet packet, NetworkStream stream) { return null; }
 	}
 	public class Encryption
@@ -49,8 +48,7 @@ namespace Debris
 		}
 		public static void InsertDate()
 		{
-			Console.ForegroundColor = ConsoleColor.Gray;
-			Console.Write("[" + DateTime.Now.Hour + ":" + DateTime.Now.Minute + ":" + DateTime.Now.Second + "] ");
+			Debug.Print("[" + DateTime.Now.Hour + ":" + DateTime.Now.Minute + ":" + DateTime.Now.Second + "] ", ConsoleColor.Gray, false);
 		}
 		public static string CreateRandomPassword(int length = 100)
 		{
@@ -215,35 +213,42 @@ namespace Debris
 	}
 	public class Debug
 	{
-		public static void Print(string text, ConsoleColor color = ConsoleColor.Gray, char ending = '\n')
+		public static void Print(object value, ConsoleColor color = ConsoleColor.Gray, bool newLine = true)
 		{
 			Console.ForegroundColor = color;
-			Console.Write(text + ending);
+			if (newLine)
+			{
+				Console.WriteLine(value);
+			}
+			else
+			{
+				Console.Write(value);
+			}
 			Console.ResetColor();
 		}
-		public static void Log(string text)
+		public static void Log(object value)
 		{
-			Print(text, ConsoleColor.Gray);
+			Print(value, ConsoleColor.Gray);
 		}
-		public static void Warn(string text)
+		public static void Warn(object value)
 		{
-			Print(text, ConsoleColor.Yellow);
+			Print(value, ConsoleColor.Yellow);
 		}
-		public static void Error(string text)
+		public static void Error(object value)
 		{
-			Print(text, ConsoleColor.Red);
+			Print(value, ConsoleColor.Red);
 		}
-		public static void OK(string text)
+		public static void OK(object value)
 		{
-			Print(text, ConsoleColor.Green);
+			Print(value, ConsoleColor.Green);
 		}
-		public static void Info(string text)
+		public static void Info(object value)
 		{
-			Print(text, ConsoleColor.Blue);
+			Print(value, ConsoleColor.Blue);
 		}
-		public static void Comment(string text)
+		public static void Comment(object value)
 		{
-			Print(text, ConsoleColor.DarkGray);
+			Print(value, ConsoleColor.DarkGray);
 		}
 	}
 }

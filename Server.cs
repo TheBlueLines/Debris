@@ -40,9 +40,12 @@ namespace Debris
 			{
 				while (server.run)
 				{
-					TcpClient client = listener.AcceptTcpClient();
-					Thread t = new Thread(new ParameterizedThreadStart(HandleDeivce));
-					t.Start(client);
+					if (listener.Pending())
+					{
+						TcpClient client = listener.AcceptTcpClient();
+						Thread t = new Thread(new ParameterizedThreadStart(HandleDeivce));
+						t.Start(client);
+					}
 				}
 			}
 			catch (SocketException e)
@@ -55,7 +58,6 @@ namespace Debris
 		{
 			TcpClient client = obj as TcpClient;
 			var stream = client.GetStream();
-			server.handle.socket = stream.Socket;
 			byte[] bytes = new byte[ushort.MaxValue];
 			try
 			{
