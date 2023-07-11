@@ -2,17 +2,22 @@
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using TTMC.Tools;
 
-namespace Debris
+namespace TTMC.Debris
 {
 	public class Client
 	{
 		public Handle handle = new();
 		private TcpClient client;
 		private List<byte> list = new();
-		public Client(string ip = "127.0.0.1", int port = 12345)
+		public Client(string ip = "127.0.0.1", int port = 12345, Handle handle = null)
 		{
 			client = new TcpClient(ip, port);
+			if (handle != null)
+			{
+				this.handle = handle;
+			}
 			Task task = new(GetPacket);
 			task.Start();
 		}
@@ -28,7 +33,7 @@ namespace Debris
 		public void SendPacket(Packet packet)
 		{
 			NetworkStream stream = client.GetStream();
-			byte[] req = Engine.Serialize(packet, stream.Socket);
+			byte[] req = Packet.Serialize(packet, stream.Socket);
 			stream.Write(req);
 		}
 		private void DoWork(NetworkStream stream)
@@ -38,7 +43,7 @@ namespace Debris
 				int? nzx = Helper.CheckLength(list.ToArray(), stream.Socket);
 				if (nzx != null && nzx.Value > 0 && list.Count >= nzx)
 				{
-					Packet resp = Engine.Deserialize(list.GetRange(0, nzx.Value).ToArray(), stream.Socket);
+					Packet resp = Packet.Deserialize(list.GetRange(0, nzx.Value).ToArray(), stream.Socket);
 					list.RemoveRange(0, nzx.Value);
 					Packet req = handle.Message(resp, stream);
 					if (req != null)

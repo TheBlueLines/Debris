@@ -2,15 +2,20 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using TTMC.Tools;
 
-namespace Debris
+namespace TTMC.Debris
 {
 	public class Server
 	{
 		public Handle handle = new();
 		internal bool run = true;
-		public Server(int port = 12345)
+		public Server(int port = 12345, Handle handle = null)
 		{
+			if (handle != null)
+			{
+				this.handle = handle;
+			}
 			Thread t = new Thread(delegate ()
 			{
 				Listener listener = new Listener(IPAddress.Any, port, this);
@@ -22,7 +27,7 @@ namespace Debris
 			run = false;
 		}
 	}
-	public class Listener
+	internal class Listener
 	{
 		private Server server;
 		private List<byte> list = new();
@@ -89,11 +94,11 @@ namespace Debris
 						List<byte> ttmc = new();
 						ttmc.AddRange(list.ToArray()[..(int)nzx]);
 						list.RemoveRange(0, (int)nzx);
-						Packet req = Engine.Deserialize(ttmc.ToArray(), stream.Socket);
+						Packet req = Packet.Deserialize(ttmc.ToArray(), stream.Socket);
 						Packet resp = server.handle.Message(req, stream);
 						if (resp != null)
 						{
-							Engine.SendPacket(stream, resp);
+							Packet.SendPacket(stream, resp);
 						}
 					}
 					else

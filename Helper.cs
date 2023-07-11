@@ -1,6 +1,7 @@
 ﻿using System.Net.Sockets;
+using TTMC.Tools;
 
-namespace Debris
+namespace TTMC.Debris
 {
 	internal class Helper
 	{

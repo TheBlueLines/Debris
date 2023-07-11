@@ -2,6 +2,14 @@
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
+    <RootNamespace>TTMC.Debris</RootNamespace>
+    <AssemblyName>Debris</AssemblyName>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Tools">
+      <HintPath>..\Tools\bin\Debug\net7.0\Tools.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 
 </Project>
